@@ -81,6 +81,16 @@ def replace_fake_id(obj: Any, real_id: str) -> Any:
     return obj
 
 
+def _response_obj(response_id: str, output: list[dict] | None = None) -> dict:
+    return {
+        "id": response_id,
+        "created_at": time_mod.time(),
+        "object": "response",
+        "output": output or [],
+        "status": None,
+    }
+
+
 async def process_agent_astream_events(
     async_stream: AsyncIterator[Any],
 ) -> AsyncGenerator[ResponsesAgentStreamEvent, None]:
@@ -92,28 +102,6 @@ async def process_agent_astream_events(
     active_text_content = ""
     active_tool_calls: dict[int, dict] = {}
 
-    # The helpers below are used in the loop further down; semgrep's
-    # useless-inner-function rule doesn't recognize usage inside `async def`.
-    def _response_obj(output: list[dict] | None = None) -> dict:  # nosemgrep: useless-inner-function
-        return {
-            "id": response_id,
-            "created_at": time_mod.time(),
-            "object": "response",
-            "output": output or [],
-            "status": None,
-        }
-
-    def _start_turn():  # nosemgrep: useless-inner-function
-        nonlocal in_turn, turn_output_items
-        in_turn = True
-        turn_output_items = []
-
-    def _end_turn():  # nosemgrep: useless-inner-function
-        nonlocal in_turn, active_text_item_id, active_text_content
-        in_turn = False
-        active_text_item_id = None
-        active_text_content = ""
-
     async for event in async_stream:
         if event[0] == "messages":
             try:
@@ -122,10 +110,11 @@ async def process_agent_astream_events(
                     continue
 
                 if not in_turn:
-                    _start_turn()
+                    in_turn = True
+                    turn_output_items = []
                     yield ResponsesAgentStreamEvent(
                         type="response.created",
-                        response=_response_obj(),
+                        response=_response_obj(response_id),
                     )
 
                 # Tool call chunks
@@ -234,10 +223,11 @@ async def process_agent_astream_events(
                     elif hasattr(msg, "tool_calls") and msg.tool_calls:
                         has_ai_message = True
                         if not in_turn:
-                            _start_turn()
+                            in_turn = True
+                            turn_output_items = []
                             yield ResponsesAgentStreamEvent(
                                 type="response.created",
-                                response=_response_obj(),
+                                response=_response_obj(response_id),
                             )
 
                         for j, tc in enumerate(msg.tool_calls):
@@ -274,10 +264,11 @@ async def process_agent_astream_events(
                     elif hasattr(msg, "content") and msg.content:
                         has_ai_message = True
                         if not in_turn:
-                            _start_turn()
+                            in_turn = True
+                            turn_output_items = []
                             yield ResponsesAgentStreamEvent(
                                 type="response.created",
-                                response=_response_obj(),
+                                response=_response_obj(response_id),
                             )
 
                         text = msg.content
@@ -326,6 +317,8 @@ async def process_agent_astream_events(
                 if has_ai_message and in_turn:
                     yield ResponsesAgentStreamEvent(
                         type="response.completed",
-                        response=_response_obj(turn_output_items),
+                        response=_response_obj(response_id, turn_output_items),
                     )
-                    _end_turn()
+                    in_turn = False
+                    active_text_item_id = None
+                    active_text_content = ""

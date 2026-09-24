@@ -18,7 +18,6 @@ def _find_free_port() -> int:
 
 def _wait_for_server_startup(url: str, timeout: int = 10):
     deadline = time.time() + timeout
-    last_exc = None
 
     while time.time() < deadline:
         try:

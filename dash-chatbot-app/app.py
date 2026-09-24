@@ -58,5 +58,4 @@ else:
     ], fluid=True)
 
 if __name__ == '__main__':
-    # Debug mode is off by default; set DASH_DEBUG=true to enable it for local development.
-    app.run()
+    app.run(debug=True)

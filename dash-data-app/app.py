@@ -101,5 +101,4 @@ if __name__ == "__main__":
     # Set initial value for prediction-output
     app.layout.children[1].children[1].children[-1].children = initial_prediction
 
-    # Debug mode is off by default; set DASH_DEBUG=true to enable it for local development.
-    app.run()
+    app.run(debug=True)

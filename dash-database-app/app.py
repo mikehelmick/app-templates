@@ -287,5 +287,4 @@ def display_todos(todos_data):
     return todo_items
 
 if __name__ == '__main__':
-    # Debug mode is off by default; set DASH_DEBUG=true to enable it for local development.
-    app.run()
+    app.run(debug=True)
