@@ -22,4 +22,5 @@ dash_app.layout = dbc.Container([
 ], fluid=True)
 
 if __name__ == '__main__':
-    dash_app.run(debug=True)
+    # Debug mode is off by default; set DASH_DEBUG=true to enable it for local development.
+    dash_app.run()

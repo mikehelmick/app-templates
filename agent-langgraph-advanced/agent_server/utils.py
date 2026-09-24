@@ -92,7 +92,9 @@ async def process_agent_astream_events(
     active_text_content = ""
     active_tool_calls: dict[int, dict] = {}
 
-    def _response_obj(output: list[dict] | None = None) -> dict:
+    # The helpers below are used in the loop further down; semgrep's
+    # useless-inner-function rule doesn't recognize usage inside `async def`.
+    def _response_obj(output: list[dict] | None = None) -> dict:  # nosemgrep: useless-inner-function
         return {
             "id": response_id,
             "created_at": time_mod.time(),
@@ -101,12 +103,12 @@ async def process_agent_astream_events(
             "status": None,
         }
 
-    def _start_turn():
+    def _start_turn():  # nosemgrep: useless-inner-function
         nonlocal in_turn, turn_output_items
         in_turn = True
         turn_output_items = []
 
-    def _end_turn():
+    def _end_turn():  # nosemgrep: useless-inner-function
         nonlocal in_turn, active_text_item_id, active_text_content
         in_turn = False
         active_text_item_id = None

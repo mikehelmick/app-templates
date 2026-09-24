@@ -70,7 +70,8 @@ def start_server(port: int) -> subprocess.Popen:
             if "Uvicorn running on" in line or "Application startup complete" in line:
                 return proc
 
-        time.sleep(0.5)
+        # Poll every 0.5s; returns early if the server's stderr closes (process exited)
+        t.join(timeout=0.5)
 
     stop_server(proc)
     print(f"  Server did not start within {SERVER_START_TIMEOUT}s")
@@ -96,7 +97,8 @@ def stop_server(proc: subprocess.Popen):
 def check_health(base_url: str) -> bool:
     try:
         req = urllib.request.Request(f"{base_url}/health")
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        # base_url always points at the local server started by this script
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected
             data = json.loads(resp.read())
             return data.get("status") == "healthy"
     except Exception as e:
@@ -116,7 +118,7 @@ def check_invocations(base_url: str, retries: int = 2) -> bool:
                 data=payload,
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
+            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:  # nosemgrep: dynamic-urllib-use-detected
                 data = json.loads(resp.read())
                 # Check that we got a response with output
                 if "output" in data and len(data["output"]) > 0:
@@ -126,7 +128,7 @@ def check_invocations(base_url: str, retries: int = 2) -> bool:
         except Exception as e:
             if attempt < retries:
                 print(f"   Attempt {attempt + 1} failed ({e}), retrying...")
-                time.sleep(3)
+                time.sleep(3)  # nosemgrep: arbitrary-sleep -- intentional retry backoff
             else:
                 print(f"  Invocations request failed: {e}")
                 return False
