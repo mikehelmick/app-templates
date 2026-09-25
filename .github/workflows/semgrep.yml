@@ -1,0 +1,51 @@
+name: Semgrep
+
+# Databricks Apps scans deployed app source with the semgrep community rules.
+# This runs the same rules on every template so findings are caught before merge.
+# To run locally, see .scripts/semgrep-scan.py.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SEMGREP_VERSION: "1.178.0"
+  # Commit of https://github.com/semgrep/semgrep-rules (the community rules)
+  SEMGREP_RULES_REF: a84ff9cc2453ca91d581380de4b8b3f272f6f4be
+
+jobs:
+  scan-templates:
+    name: Scan templates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install semgrep
+        run: pip install "semgrep==${SEMGREP_VERSION}"
+
+      - name: Fetch community rules
+        run: |
+          git init -q "$RUNNER_TEMP/semgrep-rules"
+          git -C "$RUNNER_TEMP/semgrep-rules" fetch -q --depth 1 https://github.com/semgrep/semgrep-rules "$SEMGREP_RULES_REF"
+          git -C "$RUNNER_TEMP/semgrep-rules" checkout -q FETCH_HEAD
+
+      - name: Scan templates
+        run: python .scripts/semgrep-scan.py --rules "$RUNNER_TEMP/semgrep-rules"
