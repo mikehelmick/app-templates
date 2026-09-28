@@ -5,13 +5,13 @@ import path from 'node:path';
 
 // https://vite.dev/config/
 export default defineConfig({
-  root: __dirname,
+  root: import.meta.dirname,
   plugins: [react(), tailwindcss()],
   server: {
     middlewareMode: true,
   },
   build: {
-    outDir: path.resolve(__dirname, './dist'),
+    outDir: path.resolve(import.meta.dirname, './dist'),
     emptyOutDir: true,
   },
   optimizeDeps: {
@@ -19,7 +19,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 });
